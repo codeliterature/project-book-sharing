@@ -5,6 +5,7 @@ const userSchema = require('./models/user');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const SECRET = "MynameisBook";
+const {addBook, updateBook, deleteBook} = require("./controllers/bookController");
 require('dotenv').config()
 
 
@@ -33,7 +34,7 @@ const login = async (req, res) => {
     }
     if (bcrypt.compareSync(password, hash)){
         console.log(user);
-        res.send(200)
+        res.sendStatus(200)
     }
     
 }
@@ -50,12 +51,14 @@ const signup = (req, res) => {
     });
 
     new_user.save()
-    res.send("successfull")
+    res.sendStatus("successfull")
 }
 
 app.post("/login", login);
 app.post("/signup", signup);
-
+app.post("/addbook", addBook);
+app.put("/updatebook/:id", updateBook);
+app.delete("/deletebook/:id", deleteBook);
 
 
 app.listen(PORT, () => {
