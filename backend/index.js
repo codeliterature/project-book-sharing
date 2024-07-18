@@ -1,7 +1,9 @@
 const { json } = require('body-parser');
 const express = require('express');
 const mongoose = require('mongoose');
-require('dotenv').config();
+const {addBook, updateBook, deleteBook} = require("./controllers/bookController");
+require('dotenv').config()
+
 
 
 
@@ -15,6 +17,9 @@ mongoose.connect(process.env.DB_URI).then(() => {
 
 
 app.use('/api/v1/auth', require('./routes/userRoutes'));
+app.post("/addbook", addBook);
+app.put("/updatebook/:id", updateBook);
+app.delete("/deletebook/:id", deleteBook);
 
 
 app.listen(PORT, () => {
