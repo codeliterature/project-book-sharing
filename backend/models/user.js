@@ -13,8 +13,10 @@ const userSchema = new Schema({
         unique: true
     },
     password: {
-        type: String,
-        required: true
+        type: String
+    },
+    googleId: {
+        type: String
     },
     profilePicture : {
         type: String
@@ -47,6 +49,9 @@ const userSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'UserReview'
     }],
+    rating: {
+        type: Number
+    },
     notifications: [{
         type: Schema.Types.ObjectId,
         ref: 'Notification'
