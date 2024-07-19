@@ -1,13 +1,17 @@
 const Book = require("../models/book");
+const User = require("../models/user");
 
 const addBook = async (req, res) => {
   try {
+    const userId = req.user.id;
     const { title, author, description } = req.body;
     const newBook = await Book.create({
       title,
       author,
       description,
+      owner: userId
     });
+    await User.findByIdAndUpdate(userId, { $push: { books: newBook._id}})
     res.status(201).json(newBook);
   } catch (error) {
     res.status(500).json({ status: 500, message: error.message });
@@ -51,4 +55,27 @@ const deleteBook = async (req, res) => {
   }
 };
 
-module.exports = { addBook, updateBook, deleteBook };
+
+const getUserBooks = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId).populate("books").exec();
+    if (!user) {
+      return res.status(404).json({message: "User not found"});
+    }
+    res.status(200).json(user.books)
+  } catch (error) {
+    res.status(500).json({message: error.message})
+  }
+}
+
+const getAllBooks = async (req, res) => {
+  try {
+    const books  = await Book.find().exec()
+    res.status(200).json(books)
+  } catch (error) {
+    res.status(500).json({message: error.message})
+  }
+}
+
+module.exports = { addBook, updateBook, deleteBook, getUserBooks, getAllBooks };

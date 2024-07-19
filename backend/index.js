@@ -1,7 +1,6 @@
 const express = require('express');
 const passport = require('passport');
 const session = require('express-session');
-const {addBook, updateBook, deleteBook} = require("./controllers/bookController");
 require('dotenv').config()
 require('./config/passport');
 const dbConnect = require("./config/db");
@@ -29,9 +28,8 @@ dbConnect();
 
 
 app.use('/api/v1/auth', require('./routes/userRoutes'));
-app.post("/addbook", addBook);
-app.put("/updatebook/:id", updateBook);
-app.delete("/deletebook/:id", deleteBook);
+app.use('/api/v1/books', require('./routes/bookRoutes'));
+
 
 app.get('/auth/google/callback', 
     passport.authenticate('google', {

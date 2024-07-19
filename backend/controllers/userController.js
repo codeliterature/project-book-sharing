@@ -43,7 +43,7 @@ const signup = async (req, res) => {
         }
         const salt = await bcrypt.genSalt(10);
         const hash = await bcrypt.hash(password, salt);
-        console.log("signup hash", hash);
+        // console.log("signup hash", hash);
         const newUser = new userSchema({
             username: username,
             email: email,
@@ -72,7 +72,7 @@ const signup = async (req, res) => {
 // fetch user detail function
 const userDetail = async (req, res) => {
     try {
-        userId = req.user.id;
+        const userId = req.user.id;
         const user = await userSchema.findById(userId).select("-password");
         res.status(200).json(user);
     } catch (error) {

@@ -46,10 +46,10 @@ const bookSchema = new Schema({
     //     type: String,
     //     enum: ["New", "Like New", "Very Good", "Good", "Acceptable", "Poor"],
     // },
-    // owner : {
-    //     type : Schema.Types.ObjectId,
-    //     ref : 'User',
-    // },
+    owner : {
+        type : Schema.Types.ObjectId,
+        ref : 'User',
+    },
     // reviews : [{
     //     type : Schema.Types.ObjectId,
     //     ref: 'Review'
