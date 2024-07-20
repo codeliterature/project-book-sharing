@@ -1,5 +1,5 @@
 const express = require("express");
-const userSchema = require('../models/user');
+const User = require('../models/user');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
@@ -11,7 +11,7 @@ const jwtSecret = process.env.JWT_SECRET;
 //login function
 const login = async (req, res) => {
     const { email, password } = req.body
-    const user = await userSchema.findOne({ email });
+    const user = await User.findOne({ email });
     if (!user) {
         return res.status(404).json({ status: 404, message: "User doesn't exist" });
     }
@@ -37,7 +37,7 @@ const signup = async (req, res) => {
         if (!username || !password || !email) {
             return res.status(400).json({ message: "All fields are required" });
         }
-        const user = await userSchema.findOne({ $or: [{ email }, { username }] });
+        const user = await User.findOne({ $or: [{ email }, { username }] });
         if (user) {
             return res.status(400).json({ message: "Username or email already exists" });
         }
@@ -73,7 +73,7 @@ const signup = async (req, res) => {
 const userDetail = async (req, res) => {
     try {
         const userId = req.user.id;
-        const user = await userSchema.findById(userId).select("-password");
+        const user = await User.findById(userId).select("-password");
         res.status(200).json(user);
     } catch (error) {
         console.log("error, something occured", error);
@@ -84,10 +84,14 @@ const userDetail = async (req, res) => {
 // update following function
 const updateFollowing = async (req, res) => {
     try {
-        const userId = req.params.id;
-        const { followerId } = req.body;
-        const user = await userSchema.findById(userId);
-        const follower = await userSchema.findById(followerId);
+        const userId = req.user.id;
+        const followerId = req.params.id;
+        const user = await User.findById(userId);
+        const follower = await User.findById(followerId);
+
+        if (followerId == userId) {
+            return res.status(400).json({message: "Can't follow Yourself"})
+        }
         if (!user || !follower) {
             console.log("not")
             return res.status(404).json({ message: "User not found" });
@@ -112,7 +116,7 @@ const getFollowers = async(req, res) => {
         const page = 2;
         const limit = 10;
         const skip = (page - 1) * limit;
-        const user = await userSchema.aggregate([
+        const user = await User.aggregate([
             { $match: { _id: new mongoose.Types.ObjectId(userId) } },
             { $project: { followers: 1 } },
             { $unwind: '$followers' },
@@ -150,24 +154,25 @@ const getFollowers = async(req, res) => {
 
 const getFollowing = async(req, res) => {
     const userId = req.params.id;
-    const page = 3;
-    const limit = 10 * page;
-    const user = await userSchema.findById(userId).populate({
-        path: "following",
-        select : "username profilePicture bio",
-        options : {
-            skip: (page - 1) * page,
-            limit: limit
-        }
-    })
-    console.log(user["followers"].length)
-    res.status(200).json(user["followers"]);
+    // const page = 3;
+    // const limit = 10 * page;
+    const user = await User.findById(userId);
+    // .populate({
+    // path: "following",
+    // select : "username profilePicture bio",
+    // options : {
+    //         skip: (page - 1) * page,
+    //         limit: limit
+    //     }
+    // })
+    console.log(user)
+    res.status(200).json(user.following);
 };
 
 const getUser = async (req, res) => {
     try {
-        userId = req.params.id;
-        const user = await userSchema.findById(userId).select("-password -email -notifications");
+        const userId = req.params.id;
+        const user = await User.findById(userId).select("-password -email -notifications");
         res.status(200).json(user);
     } catch (error) {
         console.log("error, something occured", error);

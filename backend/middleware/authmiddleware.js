@@ -14,14 +14,14 @@ const authmiddleware = (req, res, next) => {
             if (err) {
                 return res.status(403).json({ message: "Verification Error: Please try again." });
             }
-            if (req.params.id) {
-                if (req.params.id !== user.user.id) {
-                    return res.status(403).json({message: "Unauthorized"});
-                }
-                if (req.params.id === req.body.followerId) {
-                    return res.status(403).json({message: "User cannot follow themselves"});
-                }
-            }
+            // if (req.params.id) {
+            //     if (req.params.id !== user.user.id) {
+            //         return res.status(403).json({message: "Unauthorized"});
+            //     }
+            //     if (req.params.id === req.body.followerId) {
+            //         return res.status(403).json({message: "User cannot follow themselves"});
+            //     }
+            // }
             req.user = user.user;
             next();
         });

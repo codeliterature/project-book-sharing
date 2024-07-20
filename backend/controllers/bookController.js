@@ -4,7 +4,11 @@ const User = require("../models/user");
 const addBook = async (req, res) => {
   try {
     const userId = req.user.id;
+    const user = User.findById(userId);
     const { title, author, description } = req.body;
+    if (!user) {
+      return res.status(404).json({message: "User not found"});
+    }
     const newBook = await Book.create({
       title,
       author,
@@ -13,22 +17,30 @@ const addBook = async (req, res) => {
     });
     await User.findByIdAndUpdate(userId, { $push: { books: newBook._id}})
     res.status(201).json(newBook);
+  
   } catch (error) {
     res.status(500).json({ status: 500, message: error.message });
   }
 };
 
-const updateBook = (req, res) => {
+const updateBook = async (req, res) => {
   try {
+    const userId = req.user.id;
     const bookId = req.params.id;
     const updatedData = req.body;
-    const book = Book.findByIdAndUpdate(bookId, updatedData, { new: true })
-      .then((updatedDoc) => {
-        res.status(200).json({ message: "Book has been updated" });
-      })
-      .catch((error) => {
-        res.status(400).json(error);
-      });
+    const book = await Book.findById(bookId);
+    if (!book){
+      return res.status(404).json({message :"book not found"});
+    }
+    console.log(book.owner);
+    if (book.owner != userId){
+      return res.status(403).json({message: "Unauthorized access"});
+    }
+    const updatedBook = await Book.findByIdAndUpdate(bookId, updatedData, {new: true});
+    if (!updatedBook){
+      res.status(400).json({message: "something went wrong"})
+    }
+    res.status(200).json({message: "Updated Book Successfully"});
   } catch (error) {
     res.status(500).json({ status: 500, message: error.message });
   }
@@ -36,24 +48,22 @@ const updateBook = (req, res) => {
 
 const deleteBook = async (req, res) => {
   try {
+    const userId = req.user.id;
     const bookId = req.params.id;
-    const book = Book.findByIdAndDelete(bookId)
-      .then((deletedBook) => {
-        if (deletedBook) {
-          res
-            .status(200)
-            .json({ message: "Book has been deleted successfully" });
-        } else {
-          res.status(404).json({ message: "Book not found" });
-        }
-      })
-      .catch((error) => {
-        res.status(400).json({ error: "Error deleting book:" });
-      });
+    const book = await Book.findById(bookId);
+    if (!book) {
+      return res.status(404).json({message :"book not found"});
+    }
+    if (book.owner != userId){
+        return res.status(403).json({message: "Unauthorized access"});
+    }
+    await User.findByIdAndUpdate(userId, { $pull: { books: book._id}})
+    await Book.findByIdAndDelete(bookId);
+    res.status(200).json({message: "Book deleted successfully"});
   } catch (error) {
-    res.status(500).json({ status: 500, message: error.message });
+    res.status(500).json({message: error.message});
   }
-};
+}
 
 
 const getUserBooks = async (req, res) => {
