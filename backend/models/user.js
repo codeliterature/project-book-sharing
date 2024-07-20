@@ -33,6 +33,9 @@ const userSchema = new Schema({
     location: {
         type: String
     },
+    rating: {
+        type: Number
+    },
     followers: [{
         type: Schema.Types.ObjectId,
         ref: 'User'
@@ -49,9 +52,6 @@ const userSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'UserReview'
     }],
-    rating: {
-        type: Number
-    },
     notifications: [{
         type: Schema.Types.ObjectId,
         ref: 'Notification'
