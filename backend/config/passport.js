@@ -22,7 +22,7 @@ const authUser = async (profile) => {
         };
         const newUser = new userSchema(userData);
         const savedUser = await newUser.save();
-        const token = jwt.sign({user : {id : savedUser._id.toString()}}, Jwtsecret);
+        const token = jwt.sign({user : {id : savedUser._id.toString()}, email: savedUser.email}, Jwtsecret);
         // console.log("the token from oAuth", token);
     }
 };

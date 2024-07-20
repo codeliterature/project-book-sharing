@@ -5,10 +5,14 @@ const authmiddleware = require("../middleware/authmiddleware");
 
 
 const { login, signup, userDetail, updateFollowing, getFollowers, getFollowing, getUser } = require('../controllers/userController');
+const {reviewUser, Reviews, deleteReview} = require('../controllers/reviewController');
+
 
 function isLoggedIn(req, res, next) {
     req.user ? next() : res.sendStatus(401);
 }
+
+
 
 router.post('/signup', signup);
 router.post('/login', login);
@@ -17,11 +21,26 @@ router.post('/user/:id/follow', authmiddleware, updateFollowing);
 router.get('/user/:id/followers', getFollowers);
 router.get('/user/:id/following', getFollowing);
 router.get('/user/:id/user', getUser);
-
+router.post('/review/:id', authmiddleware, reviewUser);
+router.delete('/delete-review/:id', authmiddleware, deleteReview);
+router.get ('/getReviews/:id', Reviews);
 
 router.get('/google',
     passport.authenticate('google', { scope: ['email', 'profile'] })
 );
+
+
+// router.get("/verify-email", async (req, res) => {
+//     try {
+        
+//         })
+    
+//     } catch(error) {
+//         res.send(error)
+//     }
+// });
+
+
 
 
 router.get('/failure', (req, res) => {

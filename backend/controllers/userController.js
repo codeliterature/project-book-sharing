@@ -84,22 +84,25 @@ const userDetail = async (req, res) => {
 // update following function
 const updateFollowing = async (req, res) => {
     try {
-        const userId = req.params.id;
-        const { followerId } = req.body;
+        const userId = req.user.id;
+        const followerId = req.params.id;
         const user = await userSchema.findById(userId);
         const follower = await userSchema.findById(followerId);
         if (!user || !follower) {
             console.log("not")
             return res.status(404).json({ message: "User not found" });
         }
+        if (userId === followerId) {
+            return res.status(403).json({message: "User cannot follow themselves"});
+        }
         if (user.following.includes(followerId)) {
             await user.updateOne({ $pull: { following: followerId } });
             await follower.updateOne({ $pull: { followers: userId } });
-            res.json({ message: "User unfollowed successfully" });
+            return res.status(200).json({ message: "User unfollowed successfully" });
         } else {
             await user.updateOne({ $addToSet: { following: followerId } });
             await follower.updateOne({ $addToSet: { followers: userId } });
-            res.json({ message: "User followed successfully" });
+            return res.status(200).json({ message: "User followed successfully" });
         }
     } catch (error) {
         res.status(500).json({ message: "Server error", error });
@@ -109,8 +112,8 @@ const updateFollowing = async (req, res) => {
 const getFollowers = async(req, res) => {
     try {
         const userId = req.params.id;
-        const page = 2;
-        const limit = 10;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
         const user = await userSchema.aggregate([
             { $match: { _id: new mongoose.Types.ObjectId(userId) } },
@@ -149,19 +152,45 @@ const getFollowers = async(req, res) => {
 };
 
 const getFollowing = async(req, res) => {
-    const userId = req.params.id;
-    const page = 3;
-    const limit = 10 * page;
-    const user = await userSchema.findById(userId).populate({
-        path: "following",
-        select : "username profilePicture bio",
-        options : {
-            skip: (page - 1) * page,
-            limit: limit
+    try {
+        const userId = req.params.id;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+        const user = await userSchema.aggregate([
+            { $match: { _id: new mongoose.Types.ObjectId(userId) } },
+            { $project: { following: 1 } },
+            { $unwind: '$following' },
+            { $skip: skip },
+            { $limit: limit },
+            {
+            $lookup: {
+                from: 'users',
+                localField: 'following',
+                foreignField: '_id',
+                as: 'followingDetails'
+            }
+            },
+            { $unwind: '$followingDetails' },
+            {
+            $project: {
+                'followingDetails.username': 1,
+                'followingDetails.profilePicture': 1,
+                'followingDetails.bio': 1,
+                'followingDetails.location': 1,
+                'followingDetails.following':1,
+                'followingDetails.followers':1,
+            }
+            }
+        ]);
+    
+        const data = user.map(f => f.followingDetails);
+        res.send(data);
+        } catch (error) {
+        console.error('Error fetching followings:', error);
+        res.send(500).json({message: "Internal Server Error"})
+        throw error;
         }
-    })
-    console.log(user["followers"].length)
-    res.status(200).json(user["followers"]);
 };
 
 const getUser = async (req, res) => {
