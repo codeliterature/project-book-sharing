@@ -13,6 +13,12 @@ const addBook = async (req, res) => {
             return res.status(400).json({ message: 'Title, author, and ISBN are required' });
         }
 
+        // Check if the user already added the same book
+        const existingBook = await Book.findOne({ title, author, owner: userId });
+        if (existingBook) {
+            return res.status(400).json({ message: 'You have already added this book' });
+        }
+
         // Create and save the book
         const newBook = new Book({
             title,
@@ -28,7 +34,7 @@ const addBook = async (req, res) => {
         });
 
         await newBook.save();
-        await userSchema.findByIdAndUpdate(userId, { $push: { books: newBook._id}})
+        await userSchema.findByIdAndUpdate(userId, { $push: { books: newBook._id}});
         res.status(201).json({ message: 'Book added successfully', book: newBook });
     } catch (error) {
         console.error('Error adding book:', error);
@@ -101,11 +107,23 @@ const deleteBook = async (req, res) => {
 // Get all books added by a specific user
 const getUserBooks = async (req, res) => {
     const userId = req.user.id;
+    const { page = 1, limit = 10 } = req.query;
 
     try {
-        // Retrieve books
-        const books = await Book.find({ owner: userId });
-        res.status(200).json(books);
+        // Retrieve books with pagination
+        const books = await Book.find({ owner: userId })
+                                .limit(limit * 1)
+                                .skip((page - 1) * limit)
+                                .exec();
+
+        // Get total documents count for pagination
+        const count = await Book.countDocuments({ owner: userId });
+
+        res.status(200).json({
+            books,
+            totalPages: Math.ceil(count / limit),
+            currentPage: page
+        });
     } catch (error) {
         console.error('Error fetching user books:', error);
         res.status(500).json({ message: 'Internal Server Error' });
@@ -114,7 +132,7 @@ const getUserBooks = async (req, res) => {
 
 // Get all books with optional filters
 const getAllBooks = async (req, res) => {
-    const { title, author, isbn } = req.query;
+    const { title, author, isbn, page = 1, limit = 10 } = req.query;
 
     try {
         // Build query
@@ -123,9 +141,20 @@ const getAllBooks = async (req, res) => {
         if (author) query.author = new RegExp(author, 'i');
         if (isbn) query.isbn = isbn;
 
-        // Retrieve books
-        const books = await Book.find(query);
-        res.status(200).json(books);
+        // Retrieve books with pagination
+        const books = await Book.find(query)
+                                .limit(limit * 1)
+                                .skip((page - 1) * limit)
+                                .exec();
+
+        // Get total documents count for pagination
+        const count = await Book.countDocuments(query);
+
+        res.status(200).json({
+            books,
+            totalPages: Math.ceil(count / limit),
+            currentPage: page
+        });
     } catch (error) {
         console.error('Error fetching all books:', error);
         res.status(500).json({ message: 'Internal Server Error' });
