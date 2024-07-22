@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
-const Schema = mongoose.schema;
-
-const userReviewSchema = new Schema({
+const { Schema } = mongoose;
+// Define the review schema
+const reviewSchema = new mongoose.Schema({
     reviewer: {
         type: Schema.Types.ObjectId,
         ref: 'User',
@@ -14,18 +14,66 @@ const userReviewSchema = new Schema({
     },
     rating: {
         type: Number,
+        required: true,
         min: 1,
-        max: 5,
-        required: true
+        max: 5
     },
     comment: {
         type: String,
-        required: true
+        trim: true,
+        maxlength: 800 // Maximum length for comments
     },
     createdAt: {
         type: Date,
-        default : Date.now
+        default: Date.now
     }
 });
 
-module.exports = mongoose.model('Review', userReviewSchema);
+// Create and export the Review model
+module.exports = mongoose.model('Review', reviewSchema);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// const mongoose = require('mongoose');
+// const Schema = mongoose.Schema;
+
+// const userReviewSchema = new Schema({
+//     reviewer: {
+//         type: Schema.Types.ObjectId,
+//         ref: 'User',
+//         required: true
+//     },
+//     reviewedUser: {
+//         type: Schema.Types.ObjectId,
+//         ref: 'User',
+//         required: true
+//     },
+//     rating: {
+//         type: Number,
+//         min: 1,
+//         max: 5,
+//         required: true
+//     },
+//     comment: {
+//         type: String,
+//         required: true
+//     },
+//     createdAt: {
+//         type: Date,
+//         default : Date.now
+//     }
+// });
+
+// module.exports = mongoose.model('Review', userReviewSchema);

@@ -1,91 +1,135 @@
-const Book = require("../models/book");
-const User = require("../models/user");
+const Book = require('../models/book');
+const mongoose = require('mongoose');
+const userSchema = require('../models/user');
 
+// Add a new book
 const addBook = async (req, res) => {
-  try {
+    const { title, author, description, coverImage, isbn, condition, price, publicationYear, genre } = req.body;
     const userId = req.user.id;
-    const user = User.findById(userId);
-    const { title, author, description } = req.body;
-    if (!user) {
-      return res.status(404).json({message: "User not found"});
+
+    try {
+        // Validate input
+        if (!title || !author || !isbn) {
+            return res.status(400).json({ message: 'Title, author, and ISBN are required' });
+        }
+
+        // Create and save the book
+        const newBook = new Book({
+            title,
+            author,
+            description,
+            coverImage,
+            genre,
+            publicationYear,
+            condition,
+            price,
+            ISBN: isbn,
+            owner: userId
+        });
+
+        await newBook.save();
+        await userSchema.findByIdAndUpdate(userId, { $push: { books: newBook._id}})
+        res.status(201).json({ message: 'Book added successfully', book: newBook });
+    } catch (error) {
+        console.error('Error adding book:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
     }
-    const newBook = await Book.create({
-      title,
-      author,
-      description,
-      owner: userId
-    });
-    await User.findByIdAndUpdate(userId, { $push: { books: newBook._id}})
-    res.status(201).json(newBook);
-  
-  } catch (error) {
-    res.status(500).json({ status: 500, message: error.message });
-  }
 };
 
+// Update book details
 const updateBook = async (req, res) => {
-  try {
+    const { id } = req.params;
+    const updates = req.body;
     const userId = req.user.id;
-    const bookId = req.params.id;
-    const updatedData = req.body;
-    const book = await Book.findById(bookId);
-    if (!book){
-      return res.status(404).json({message :"book not found"});
+
+    try {
+        // Validate input
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: 'Invalid book ID' });
+        }
+
+        // Find the book and update it
+        const book = await Book.findById(id);
+        if (!book) {
+            return res.status(404).json({ message: 'Book not found' });
+        }
+
+        if (book.owner.toString() !== userId) {
+            return res.status(403).json({ message: 'Unauthorized to update this book' });
+        }
+
+        Object.assign(book, updates);
+        await book.save();
+        res.status(200).json({ message: 'Book updated successfully', book });
+    } catch (error) {
+        console.error('Error updating book:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
     }
-    console.log(book.owner);
-    if (book.owner != userId){
-      return res.status(403).json({message: "Unauthorized access"});
-    }
-    const updatedBook = await Book.findByIdAndUpdate(bookId, updatedData, {new: true});
-    if (!updatedBook){
-      res.status(400).json({message: "something went wrong"})
-    }
-    res.status(200).json({message: "Updated Book Successfully"});
-  } catch (error) {
-    res.status(500).json({ status: 500, message: error.message });
-  }
 };
 
+// Delete a book
 const deleteBook = async (req, res) => {
-  try {
+    const { id } = req.params;
     const userId = req.user.id;
-    const bookId = req.params.id;
-    const book = await Book.findById(bookId);
-    if (!book) {
-      return res.status(404).json({message :"book not found"});
-    }
-    if (book.owner != userId){
-        return res.status(403).json({message: "Unauthorized access"});
-    }
-    await User.findByIdAndUpdate(userId, { $pull: { books: book._id}})
-    await Book.findByIdAndDelete(bookId);
-    res.status(200).json({message: "Book deleted successfully"});
-  } catch (error) {
-    res.status(500).json({message: error.message});
-  }
-}
 
+    try {
+        // Validate input
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: 'Invalid book ID' });
+        }
 
+        // Find the book and delete it
+        const book = await Book.findById(id);
+        if (!book) {
+            return res.status(404).json({ message: 'Book not found' });
+        }
+
+        if (book.owner.toString() !== userId) {
+            return res.status(403).json({ message: 'Unauthorized to delete this book' });
+        }
+
+        const user = await userSchema.findById(userId);
+        await Book.findByIdAndDelete(id);
+        await user.updateOne({ $pull: { books: id } });
+        res.status(200).json({ message: 'Book deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting book:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+};
+
+// Get all books added by a specific user
 const getUserBooks = async (req, res) => {
-  try {
     const userId = req.user.id;
-    const user = await User.findById(userId).populate("books").exec();
-    if (!user) {
-      return res.status(404).json({message: "User not found"});
-    }
-    res.status(200).json(user.books)
-  } catch (error) {
-    res.status(500).json({message: error.message})
-  }
-}
 
+    try {
+        // Retrieve books
+        const books = await Book.find({ owner: userId });
+        res.status(200).json(books);
+    } catch (error) {
+        console.error('Error fetching user books:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+};
+
+// Get all books with optional filters
 const getAllBooks = async (req, res) => {
-  try {
-    const books  = await Book.find().exec()
-    res.status(200).json(books)
-  } catch (error) {
-    res.status(500).json({message: error.message})
-  }
-}
+    const { title, author, isbn } = req.query;
+
+    try {
+        // Build query
+        const query = {};
+        if (title) query.title = new RegExp(title, 'i'); // Case-insensitive search
+        if (author) query.author = new RegExp(author, 'i');
+        if (isbn) query.isbn = isbn;
+
+        // Retrieve books
+        const books = await Book.find(query);
+        res.status(200).json(books);
+    } catch (error) {
+        console.error('Error fetching all books:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+};
 
 module.exports = { addBook, updateBook, deleteBook, getUserBooks, getAllBooks };

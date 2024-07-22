@@ -1,13 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const authmiddleware = require("../middleware/authmiddleware");
+const authMiddleware = require('../middleware/authmiddleware');
 
-const { addBook, updateBook, deleteBook, getUserBooks, getAllBooks } = require('../controllers/bookController');
+// Import controllers
+const bookController = require('../controllers/bookController');
 
-router.post("/addbook", authmiddleware, addBook);
-router.put("/updatebook/:id", authmiddleware, updateBook);
-router.delete("/deletebook/:id", authmiddleware, deleteBook);
-router.get("/mybooks", authmiddleware, getUserBooks);
-router.get("/allbooks", getAllBooks);
+// Book Routes (protected)
+router.post('/addbook', authMiddleware, bookController.addBook);
+router.put('/updatebook/:id', authMiddleware, bookController.updateBook);
+router.delete('/deletebook/:id', authMiddleware, bookController.deleteBook);
+router.get('/mybooks', authMiddleware, bookController.getUserBooks);
+router.get('/allbooks', bookController.getAllBooks);
 
 module.exports = router;
