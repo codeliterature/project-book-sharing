@@ -28,6 +28,33 @@ const getUser = async (req, res) => {
     }
 };
 
+const getSearchUsers = async (req, res) => {
+    const { username, page = 1, limit = 10 } = req.query;
+    try {
+        // Build query
+        const query = {};
+        if (username) query.username = new RegExp(username, 'i');
+
+        // Retrieve books with pagination
+        const users = await userSchema.find(query).select("-password -email -notifications -books -followers -following -reviews -createdAt -updatedAt")
+                                .limit(limit * 1)
+                                .skip((page - 1) * limit)
+                                .exec();
+
+        // Get total documents count for pagination
+        const count = await userSchema.countDocuments(query);
+
+        res.status(200).json({
+            users,
+            totalPages: Math.ceil(count / limit),
+            currentPage: page
+        });
+    } catch (error) {
+        console.error('Error fetching all users:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+}
+
 // Update user profile
 const updateUserProfile = async (req, res) => {
     const { username, bio, birthday, gender, profilePicture, location } = req.body;
@@ -161,4 +188,4 @@ const getFollowing = async (req, res) => {
     }
 };
 
-module.exports = { getUserProfile, getUser, updateUserProfile, updateFollowing, getFollowers, getFollowing };
+module.exports = { getUserProfile, getUser, getSearchUsers, updateUserProfile, updateFollowing, getFollowers, getFollowing };

@@ -33,6 +33,8 @@ router.get('/following/:id', profileController.getFollowing);
 // User Profile Information Route (public)
 router.get('/user/:id/', profileController.getUser);
 
+router.get('/usersearch', profileController.getSearchUsers);
+
 // Review Routes (protected)
 router.post('/review/:id', authMiddleware, reviewController.createReview);
 router.delete('/delete-review/:id', authMiddleware, reviewController.deleteReview);
