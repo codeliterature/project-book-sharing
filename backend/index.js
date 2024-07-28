@@ -5,9 +5,11 @@ const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 require('./config/passport')
 const dbConnect = require("./config/db");
+const cors = require("cors");
 
 const PORT = process.env.PORT || 5000;
 const app = express();
+app.use(cors());
 
 app.use(express.json());
 
@@ -31,12 +33,23 @@ dbConnect();
 app.use('/api/v1/auth', require('./routes/userRoutes'));
 app.use('/api/v1/books', require('./routes/bookRoutes'));
 
-app.get('/auth/google/callback',
+/*app.get('/auth/google/callback',
     passport.authenticate('google', {
         failureRedirect: '/api/v1/auth/failure',
-        successRedirect: '/api/v1/auth/protected'
+        //successRedirect: '/api/v1/auth/protected'
     })
+);*/
+
+app.get('/auth/google/callback',
+    passport.authenticate('google', {
+        failureRedirect: '/api/v1/auth/failure'
+    }),
+    (req, res) => {
+        const token = req.user.token;
+        res.redirect(`http://localhost:5173/auth/success?token=${token}`); // Assuming your frontend runs on localhost:3000
+    }
 );
+
 
 // Main Route
 app.get('/', (req, res) => {
